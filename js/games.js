@@ -124,7 +124,9 @@ function vGameStart(id){const g=GDEF[id];Game.stopAudio();const b=G.best[id]||{}
  ${src}<div class="diffs" style="margin-top:16px">${Object.entries(g.diffs).map(([k,d])=>`<button class="diff" data-d="${k}"><b>${d.label}</b><small>${d.desc}</small><em>${b[k]?"Best "+b[k].toLocaleString():"Not played yet"}</em></button>`).join("")}</div>`}
 function afterGameStart(id){$$("[data-d]").forEach(b=>b.onclick=()=>{const src=$("#gsrc")?$("#gsrc").value:"all";startGame(id,b.dataset.d,src)})}
 
-function startGame(id,diff,src){RNG=Math.random;Player.stop();Game.live=true;if(location.hash!=="#run-"+id)location.hash="#run-"+id
+function startGame(id,diff,src,seed){Player.stop();Game.live=true;if(location.hash!=="#run-"+id)location.hash="#run-"+id
+ if(!seed)Game.vs=null
+ Game.seed=seed||Math.random().toString(36).slice(2,8);RNG=seeded([id,diff,src||"all",Game.seed].join("|"))
  Object.assign(Game,{id,diff,src,i:0,score:0,right:0,marks:[],answered:false,qs:null})
  if(id==="hilo")return hiloStart()
  if(id==="timeline"){Game.n=GDEF.timeline.rounds;return tlRound()}
@@ -192,8 +194,11 @@ function endGame(){Game.stopAudio();Game.live=false;const id=Game.id,diff=Game.d
  $("#view").innerHTML=`<div class="gamehead"><a href="#play">← Games</a></div><div class="stage endcard"><p class="eyebrow">${GDEF[id].name} · ${GDEF[id].diffs[diff].label}</p>
  <div class="big foil num">${Game.score.toLocaleString()}</div><p class="hint">${Game.right} of ${Game.n} right${isBest?" · new personal best":` · best ${prev.toLocaleString()}`} · +${xp} XP</p>
  <p style="font-size:22px;letter-spacing:4px;margin:10px 0">${Game.marks.map(m=>m?"🟨":"⬛").join("")}</p>
- <div class="row" style="justify-content:center;margin-top:14px"><button class="btn gold" id="again">Play again</button><a class="btn" href="#game-${id}">Change level</a><a class="btn ghost" href="#play">All games</a></div></div>`
- $("#again").onclick=()=>startGame(id,diff,Game.src)}
+ ${vsLine(Game.score)}
+ <div class="row" style="justify-content:center;margin-top:14px"><button class="btn gold" id="chal">Challenge a friend</button><button class="btn" id="again">Play again</button><a class="btn ghost" href="#game-${id}">Change level</a></div></div>`
+ RNG=Math.random;$("#again").onclick=()=>startGame(id,diff,Game.src);$("#chal").onclick=shareChallenge}
+function vsLine(mine){if(!Game.vs)return "";const t=Game.vs.sc,n=esc(Game.vs.n)
+ return `<div class="verdict ${mine>t?"ok":mine===t?"":"no"}" style="font-size:24px">${mine>t?`You beat ${n}`:mine===t?`Tied with ${n}`:`${n} wins this one`}</div><p class="hint">${n}: ${t.toLocaleString()} · you: ${mine.toLocaleString()}</p>`}
 
 /* Higher or Lower */
 function hiloNext(a){const c=GDEF.hilo.diffs[Game.diff],pool=byStreams().slice(0,260);let b,t=0
@@ -213,8 +218,8 @@ function hiloAnswer(h){if(Game.answered)return;Game.answered=true;const a=Game.a
  setTimeout(()=>{if(ok){Game.streak++;Game.a=b;Game.b=hiloNext(b);Game.answered=false;hiloRender()}else hiloEnd()},ok?900:1100)}
 function hiloEnd(){Game.live=false;const c=GDEF.hilo.diffs[Game.diff];G.best.hilo=G.best.hilo||{};const prev=G.best.hilo[Game.diff]||0,isBest=Game.streak>prev;if(isBest)G.best.hilo[Game.diff]=Game.streak
  G.plays.hilo=(G.plays.hilo||0)+1;gsave();const xp=Math.round(Game.streak*15*c.mult);addXP(xp)
- $("#after").innerHTML=`<div class="endcard" style="margin-top:14px"><div class="verdict no">Streak over</div><div class="big foil num">${Game.streak}</div><p class="hint">${isBest?"New best":"Best "+prev} · +${xp} XP</p><div class="row" style="justify-content:center;margin-top:12px"><button class="btn gold" id="again">Play again</button><a class="btn" href="#game-hilo">Change level</a></div></div>`
- $("#again").onclick=()=>startGame("hilo",Game.diff)}
+ $("#after").innerHTML=`<div class="endcard" style="margin-top:14px"><div class="verdict no">Streak over</div><div class="big foil num">${Game.streak}</div><p class="hint">${isBest?"New best":"Best "+prev} · +${xp} XP</p>${vsLine(Game.streak)}<div class="row" style="justify-content:center;margin-top:12px"><button class="btn gold" id="chal">Challenge a friend</button><button class="btn" id="again">Play again</button><a class="btn ghost" href="#game-hilo">Change level</a></div></div>`
+ RNG=Math.random;$("#again").onclick=()=>startGame("hilo",Game.diff);$("#chal").onclick=shareChallenge}
 
 /* Timeline */
 function tlItems(c){if(c.mode==="albums")return gtake(ALBS().filter(a=>a.type!=="EP"),c.n).map(a=>({id:a.k,t:a.t,sub:a.type,img:a.art,d:a.date,y:a.y}))
@@ -247,7 +252,7 @@ function vDaily(){const d=today(),done=G.daily[d]
  return `<div class="gamehead"><a href="#play">← Games</a></div><p class="eyebrow">${d}</p><h1 class="title foil">Daily Challenge</h1><p class="hint">Five questions: trivia, a 4-second clip, a streams call, odd one out and a cover close-up. One try a day. Keep the streak alive.</p><button class="btn gold" id="dstart" style="margin-top:18px">Start</button>`}
 function afterDaily(){const s=$("#dstart");if(s)s.onclick=()=>{Player.stop();Object.assign(Game,{id:"daily",diff:"medium",i:0,n:5,score:0,right:0,marks:[],qs:dailyQs(today()),live:true});location.hash="#run-daily";nextQ()}
  const b=$("#sharebtn");if(b)b.onclick=async()=>{const t=$("#sharetxt").textContent;try{if(navigator.share){await navigator.share({text:t});return}}catch(e){return}try{await navigator.clipboard.writeText(t);toast("Copied")}catch(e){toast("Select the text to copy it")}}}
-function shareText(d,r){return `Drake Hub Daily ${d}\n${r.marks.map(m=>m?"🟨":"⬛").join("")} ${r.right}/5\nStreak ${G.streak}`}
+function shareText(d,r){return `Drake Hub Daily ${d}\n${r.marks.map(m=>m?"🟨":"⬛").join("")} ${r.right}/5\nStreak ${G.streak}\n${appURL()}#daily`}
 function dailyEnd(){const d=today(),y=new Date(Date.now()-864e5),yd=y.getFullYear()+"-"+String(y.getMonth()+1).padStart(2,"0")+"-"+String(y.getDate()).padStart(2,"0")
  G.streak=G.lastDaily===yd?(G.streak||0)+1:1;G.lastDaily=d;G.daily[d]={score:Game.score,right:Game.right,marks:Game.marks};gsave()
  addXP(Math.round(Game.score/10)+100);location.replace("#daily")}

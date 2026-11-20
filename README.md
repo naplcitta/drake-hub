@@ -15,19 +15,33 @@ A black and gold fan app for ranking every Drake song, grading every album and p
 - **Library**: every album and song with ratings, letter grades, previews, lanes, chart history and stream counts.
 - **Me**: levels named after his albums, badges, stats, Spotify connection and backups.
 
+## Sharing it with friends
+
+Anyone can use it. Send them the GitHub Pages link. There's no sign-up and no server: each person's rankings, scores and settings live on their own phone.
+
+Built-in ways to play together:
+
+- **Share my top 10**: a black and gold image card for stories or group chats.
+- **Compare with a friend**: a link with your top 25 inside it. Your friend opens it and sees your taste match.
+- **Challenge a friend**: after any game, send a link. Your friend gets the exact same questions or clips and sees your score to beat.
+- **Daily Challenge**: the same five questions for everyone each day, with a shareable result grid.
+
 ## Moving your progress from the web hub
 
 In the web hub, open **My Stats** and tap **Copy backup code**. In the app, paste it on the Home screen or under **Me → Backup**.
 
 ## Connecting Spotify
 
-Spotify only allows personal projects through your own developer key:
+Everything except the Spotify features works for everyone with no setup.
+
+**For the person hosting the app (one time):**
 
 1. Go to developer.spotify.com, open the Dashboard and create an app.
-2. Add the app's address (shown in **Me → Spotify**) as a Redirect URI and tick **Web API**.
-3. Paste the Client ID into **Me → Spotify** and tap Connect.
+2. Add the app's GitHub Pages address as a Redirect URI, for example `https://naplcitta.github.io/drake-hub/`, and tick **Web API**.
+3. Put the Client ID in `js/config.js` as `spotifyClientId` and push. A Client ID isn't a secret.
+4. Under **User Management** in the dashboard, add the Spotify email of each friend who wants Spotify features.
 
-Spotify requires the developer app's owner to have Premium. Tokens stay on your phone.
+Spotify's rules for personal developer apps: the owner needs Premium, and each Client ID can approve up to 5 listeners. Anyone beyond that can tap "Use your own Spotify developer key" in **Me → Spotify** and follow the same steps with their own account. Sign-in tokens stay on each person's phone.
 
 ## Data
 

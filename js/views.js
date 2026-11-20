@@ -131,7 +131,7 @@ function albumRanks(){const L=ladderIds(D.songs),pos={};L.forEach((id,i)=>pos[id
   return{a,ps,avg,med,top50:v.filter(x=>x<=50).length}}).sort((x,y)=>x.avg-y.avg||x.med-y.med)}
 function vRanked(){const P=progress(),R=albumRanks(),n=D.songs.length
  return chips(RANKCHIPS,"ranked")+`<div class="sec-h"><div><h2>Album Ranking</h2><p>Each album's score is the average position of its songs in your ranking of ${n}. Lower is better. ${P.open?`Your list is ${P.pct.toFixed(1)}% final, so this is provisional.`:"Your list is final, so this is too."}</p></div>
- <div class="row"><label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="incep"${incEP?" checked":""}> EPs and singles</label><button class="btn small" id="use-ao">Use as my album ranking</button>${SP.ok()?`<button class="btn small gold" id="sp-top">Top 50 to Spotify</button>`:""}</div></div>
+ <div class="row"><label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="incep"${incEP?" checked":""}> EPs and singles</label><button class="btn small" id="use-ao">Use as my album ranking</button><button class="btn small" id="rk-card">Share top 10</button><button class="btn small" id="rk-cmp">Compare with a friend</button>${SP.ok()?`<button class="btn small gold" id="sp-top">Top 50 to Spotify</button>`:""}</div></div>
  <ol class="arank">${R.map((r,i)=>`<li><div class="arh"><span class="pos">${i+1}</span><a href="#album-${r.a.k}"><img src="${r.a.art}" alt=""></a><div style="min-width:0"><b>${esc(r.a.t)}</b><small class="num">${r.a.y} · ${r.top50} in your top 50 · best #${r.ps[0].p} · worst #${r.ps[r.ps.length-1].p}</small></div><div class="avg num"><b class="foil">${r.avg.toFixed(1)}</b><small>avg position</small></div></div>
   <ol class="aps">${r.ps.map(x=>`<li><span class="num">#${x.p}</span>${esc(x.s.t)} <i>${fmtS(x.s.st)}</i></li>`).join("")}</ol></li>`).join("")}</ol>
  <div class="sec-h"><div><h2>Edit My Full Ranking</h2><p>Drag a song by its handle, or type a new number. A manual move counts as your call, and Head to Head works around it.</p></div></div>
@@ -146,6 +146,7 @@ function afterRanked(){fillMy()
  $("#mylist").addEventListener("change",e=>{const inp=e.target.closest(".posin");if(!inp)return;const id=inp.closest("li").dataset.id,p=Math.round(+inp.value);if(!p)return;moveSong(id,p);toast(SONG[id].t+" moved to #"+Math.max(1,Math.min(D.songs.length,p)));route(true)})
  $("#incep").onchange=e=>{incEP=e.target.checked;localSet("incEP",incEP?"1":"0");route(true)}
  $("#use-ao").onclick=()=>{const R=albumRanks().map(r=>r.a.k);S.ao=R.concat(D.albums.map(a=>a.k).filter(k=>!R.includes(k)));persist();toast("Album ranking updated from your songs")}
+ $("#rk-card").onclick=topCard;$("#rk-cmp").onclick=shareCompare
  const sp=$("#sp-top");if(sp)sp.onclick=()=>SP.makePlaylist(myTop(50),"My Drake Top 50","My top 50 Drake songs, ranked head to head in Drake Hub.")}
 
 /* all songs */

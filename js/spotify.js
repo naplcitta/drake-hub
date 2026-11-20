@@ -3,7 +3,8 @@
 const SP={
  scopes:"user-read-private user-top-read user-read-recently-played playlist-modify-private playlist-modify-public",
  redirect(){return location.origin+location.pathname},
- cid(){return localGet("sp.cid","")},
+ cid(){return localGet("sp.cid","")||CONFIG.spotifyClientId},
+ shared(){return !!CONFIG.spotifyClientId&&!localGet("sp.cid","")},
  tok(){try{return JSON.parse(localGet("sp.tok","")||"null")}catch(e){return null}},
  ok(){return !!this.tok()},
  save(t){const o={a:t.access_token,r:t.refresh_token||(this.tok()||{}).r,x:Date.now()+(t.expires_in-60)*1000};localSet("sp.tok",JSON.stringify(o))},
@@ -27,6 +28,7 @@ const SP={
   const j=await r.json();if(!r.ok){this.disconnect();throw new Error("Spotify session expired. Connect again.")}this.save(j);return j.access_token},
  async api(path,opt={}){const t=await this.token();const r=await fetch("https://api.spotify.com/v1"+path,Object.assign({},opt,{headers:Object.assign({Authorization:"Bearer "+t},opt.body?{"Content-Type":"application/json"}:{})}))
   if(r.status===204)return null;let j=null;try{j=await r.json()}catch(e){}
+  if(r.status===403&&this.shared())throw new Error("Spotify hasn't approved your account for this app yet. "+CONFIG.spotifyOwnerNote)
   if(!r.ok)throw new Error((j&&j.error&&j.error.message)||("Spotify said "+r.status));return j},
  disconnect(){localSet("sp.tok","");this.me=null;this.cache={}},
  me:null,cache:{},
@@ -47,11 +49,12 @@ function b64u(bytes){let s="";bytes.forEach(b=>s+=String.fromCharCode(b));return
 
 let spRange=localGet("sp.range","medium_term")
 function vSpotify(){const cid=SP.cid()
+ const own=`<ol class="hint" style="padding-left:18px;margin:12px 0;display:grid;gap:6px"><li>Go to developer.spotify.com, log in, open the Dashboard and tap <b>Create app</b>. Any name works.</li><li>Under Redirect URIs add exactly:<br><code style="font-family:var(--mono);color:var(--gold-2);word-break:break-all" id="ruri">${esc(SP.redirect())}</code> <button class="btn small ghost" id="copyr">Copy</button></li><li>Tick <b>Web API</b>, save, then copy the <b>Client ID</b> into the box below.</li></ol>
+ <p class="hint">Spotify requires the developer app's owner to have Premium.</p>
+ <div class="row" style="margin-top:12px"><input type="text" id="cid" placeholder="Spotify Client ID" value="${esc(localGet("sp.cid",""))}" style="flex:1;min-width:200px" autocomplete="off" autocapitalize="off"><button class="btn${CONFIG.spotifyClientId?"":" gold"}" id="spgo">Connect with my key</button></div>`
  if(!SP.ok())return `<div class="card"><p class="eyebrow">Spotify</p><h3 style="font-family:var(--display);font-weight:900;font-size:28px;text-transform:uppercase;margin:4px 0 6px">Connect your Spotify</h3>
- <p class="hint">See your most-played Drake next to your ranking, and send your rankings to Spotify as playlists. Spotify only lets personal projects in through your own free developer key, so this is a one-time, two-minute setup.</p>
- <ol class="hint" style="padding-left:18px;margin:12px 0;display:grid;gap:6px"><li>Go to developer.spotify.com, log in, open the Dashboard and tap <b>Create app</b>. Any name works.</li><li>Under Redirect URIs add exactly:<br><code style="font-family:var(--mono);color:var(--gold-2);word-break:break-all" id="ruri">${esc(SP.redirect())}</code> <button class="btn small ghost" id="copyr">Copy</button></li><li>Tick <b>Web API</b>, save, then copy the <b>Client ID</b> into the box below.</li></ol>
- <p class="hint">Spotify requires the app owner to have Premium for personal developer apps.</p>
- <div class="row" style="margin-top:12px"><input type="text" id="cid" placeholder="Spotify Client ID" value="${esc(cid)}" style="flex:1;min-width:200px" autocomplete="off" autocapitalize="off"><button class="btn gold" id="spgo">Connect</button></div>
+ <p class="hint">See your most-played Drake next to your ranking, and send your rankings to Spotify as playlists. Everything else in the app works without it.</p>
+ ${CONFIG.spotifyClientId?`<button class="btn gold" id="spquick" style="margin-top:12px">Connect Spotify</button><p class="hint" style="margin-top:8px">${esc(CONFIG.spotifyOwnerNote)}</p><details style="margin-top:12px"><summary class="hint">Use your own Spotify developer key instead</summary>${own}</details>`:`<p class="hint" style="margin-top:8px">Spotify only lets personal projects in through a free developer key. One-time, two-minute setup:</p>${own}`}
  <details style="margin-top:12px"><summary class="hint">Signed in through Safari instead of the app?</summary><p class="hint">If Spotify opened in Safari and connected there, tap "Copy link code" on that page, then paste it here.</p><div class="row"><input type="text" id="lcode" placeholder="Link code" style="flex:1"><button class="btn" id="lgo">Use code</button></div></details></div>`
  return `<div class="card glow" id="spcard"><div class="row"><div style="flex:1;min-width:0"><p class="eyebrow">Spotify connected</p><b style="font-family:var(--display);font-weight:900;font-size:26px;text-transform:uppercase" id="spname">Loading…</b></div><button class="btn small ghost" id="spoff">Disconnect</button></div>
  <div class="seg" role="group" aria-label="Time range" style="margin-top:12px">${[["short_term","4 weeks"],["medium_term","6 months"],["long_term","All time"]].map(([v,t])=>`<button data-rg="${v}" aria-pressed="${spRange===v}">${t}</button>`).join("")}</div>
@@ -63,6 +66,7 @@ function vSpotify(){const cid=SP.cid()
  <textarea id="spcode" hidden readonly rows="2" style="margin-top:12px"></textarea><button class="btn small ghost" id="spcopy" style="margin-top:10px">Copy link code for another device</button></div>`}
 async function afterSpotify(){
  if(!SP.ok()){const c=$("#copyr");if(c)c.onclick=async()=>{try{await navigator.clipboard.writeText(SP.redirect());toast("Copied")}catch(e){toast("Select and copy it")}}
+  const q=$("#spquick");if(q)q.onclick=()=>{localSet("sp.cid","");SP.connect()}
   $("#spgo").onclick=()=>{const v=$("#cid").value.trim();if(!/^[0-9a-f]{32}$/i.test(v)){toast("That doesn't look like a Client ID. It's 32 letters and numbers.");return}localSet("sp.cid",v);SP.connect()}
   $("#lgo").onclick=()=>{try{const j=JSON.parse(atob($("#lcode").value.trim()));localSet("sp.cid",j.c);SP.save({access_token:"x",refresh_token:j.r,expires_in:0});const t=SP.tok();t.x=0;localSet("sp.tok",JSON.stringify(t));toast("Spotify linked");route(true)}catch(e){toast("That code didn't work")}}
   return}
