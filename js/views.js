@@ -35,16 +35,16 @@ const LANE_DESC={bars:"Timestamp tracks, intros and outros, the songs where the 
 const isOne=s=>ONES.some(o=>o[1]===s.a&&norm(o[0])===norm(s.t))
 
 function chips(list,curr){return `<nav class="chips">${list.map(([h,t])=>`<a href="#${h}"${h===curr?" aria-current":""}>${t}</a>`).join("")}</nav>`}
-const LIBCHIPS=[["albums","Albums"],["songs","All Songs"],["lanes","Lanes"],["charts","Charts"]]
+const LIBCHIPS=[["albums","Albums"],["circle","The Circle"],["songs","All Songs"],["lanes","Lanes"],["charts","Charts"]]
 const RANKCHIPS=[["rank","Head to Head"],["ranked","Rankings"]]
 
 function pips(id){const v=S.r[id];let h=`<div class="pips" role="group" aria-label="Rate 1 to 10">`
  for(let i=1;i<=10;i++)h+=`<button class="pip${v!=null&&i<=v?" on":""}" data-id="${id}" data-v="${i}" style="--rc:${v?rc(v):""}" aria-label="${i} out of 10" aria-pressed="${v===i}">${i}</button>`
  return h+`</div>`}
-function meta(s,showAlbum){const bits=[`<span class="sn">${s.st!=null?fmtS(s.st):"·"}</span>`];if(showAlbum)bits.push(esc(A[s.a].t));if(s.y)bits.push(s.y);if(s.f)bits.push("feat. "+esc(s.f));bits.push(esc(D.lanes[s.l]))
+function meta(s,showAlbum){const bits=[`<span class="sn">${s.st!=null?fmtS(s.st):"·"}</span>`];if(showAlbum)bits.push(esc(A[s.a].t));if(s.y)bits.push(s.y);if(s.f)bits.push("feat. "+esc(s.f));if(prods(s).length)bits.push("prod. "+esc(prodLine(s)));else bits.push(esc(D.lanes[s.l]))
  return bits.join(" · ")+(isOne(s)?`<span class="chip one">Hot 100 #1</span>`:"")+(s.x?`<span class="chip">${esc(s.x)}</span>`:"")}
-function trackRow(s,pos,ranked){return `<li class="trk${ranked?" ranked":""}" data-id="${s.id}">${ranked?`<span class="grip" aria-label="Drag to reorder">⠿</span>`:`<span></span>`}<span class="no">${pos}</span><div class="tt"><b>${esc(s.t)}</b><small>${meta(s)}</small></div><span class="dur">${fmt(s.ms)}</span>${pips(s.id)}${pvBtn(s)}</li>`}
-function songRow(s){return `<li class="trk srow" data-id="${s.id}"><img src="${art(s)}" alt="" loading="lazy"><div class="tt"><b>${esc(s.t)}</b><small>${meta(s,true)}</small></div><span class="score num">${S.r[s.id]??"·"}</span>${pips(s.id)}${pvBtn(s)}</li>`}
+function trackRow(s,pos,ranked){return `<li class="trk${ranked?" ranked":""}" data-id="${s.id}">${ranked?`<span class="grip" aria-label="Drag to reorder">⠿</span>`:`<span></span>`}<span class="no">${pos}</span><div class="tt" data-song="${s.id}"><b>${esc(s.t)}</b><small>${meta(s)}</small></div><span class="dur">${fmt(s.ms)}</span>${pips(s.id)}${pvBtn(s)}</li>`}
+function songRow(s){return `<li class="trk srow" data-id="${s.id}"><img src="${art(s)}" alt="" loading="lazy" data-song="${s.id}"><div class="tt" data-song="${s.id}"><b>${esc(s.t)}</b><small>${meta(s,true)}</small></div><span class="score num">${S.r[s.id]??"·"}</span>${pips(s.id)}${pvBtn(s)}</li>`}
 
 /* albums */
 let albumMode=localGet("albumMode","grid"),trackMode="album"
@@ -79,18 +79,23 @@ function vAlbum(k){const a=A[k];if(!a)return vAlbums()
  <div class="toolbar"><div class="seg" role="group" aria-label="Track order"><button data-tm="album" aria-pressed="${!ranked}">Album order</button><button data-tm="rank" aria-pressed="${ranked}">My ranking</button></div>
  ${ranked?`<button class="btn small" id="to-auto">Sort by my ratings</button>`:`<span class="hint">Tap 1 to 10 to rate. Tap again to clear.</span>`}</div>
  <ol class="tracks" id="tlist">${list.map((s,i)=>trackRow(s,ranked?i+1:s.n,ranked)).join("")}</ol>
+ ${albumInsight(k)}
  <nav class="pager">${prev?`<a href="#album-${prev.k}">← ${esc(prev.t)}</a>`:"<span></span>"}${next?`<a href="#album-${next.k}">${esc(next.t)} →</a>`:"<span></span>"}</nav>`}
+function albumInsight(k){const L=BYA[k],pc=prodCounts(L),sm=L.filter(s=>s.sm)
+ return `<div class="sec-h"><div><p class="eyebrow">Production</p><h2>Behind the Boards</h2><p>${esc(ALBUM_NOTES[k]||"")}</p></div></div>
+ ${pc.length?`<div class="pchips">${pc.slice(0,14).map(([n,c])=>`<a class="pchip" href="#producer-${slug(n)}">${esc(n)} <i>${c}</i></a>`).join("")}</div>`:`<p class="hint">Per-track producers aren't listed for this project in the source.</p>`}
+ ${sm.length?`<div class="sec-h"><div><h2>Samples</h2><p>${sm.length} of ${L.length} songs flip something.</p></div></div><div class="samples">${sm.map(s=>`<div class="sample" data-song="${s.id}"><b>${esc(s.t)}</b><p>${esc(cap(s.sm[0].replace(/^"[^"]+"\s*/,"")))}</p></div>`).join("")}</div>`:""}`}
 function afterAlbum(k){
  $$("[data-g]").forEach(b=>b.onclick=()=>{if(S.g[k]===b.dataset.g)delete S.g[k];else S.g[k]=b.dataset.g;persist();$$("[data-g]").forEach(x=>x.setAttribute("aria-pressed",S.g[k]===x.dataset.g));toast(S.g[k]?A[k].t+": "+S.g[k]:"Grade cleared")})
  $$("[data-tm]").forEach(b=>b.onclick=()=>{trackMode=b.dataset.tm;route(true)})
  const l=$("#tlist")
  if(trackMode==="rank"&&window.Sortable)Sortable.create(l,{handle:".grip",animation:160,onEnd(){S.to[k]=[...l.children].map(li=>li.dataset.id);persist();[...l.children].forEach((li,i)=>li.querySelector(".no").textContent=i+1);toast("Track ranking saved")}})
  const au=$("#to-auto");if(au)au.onclick=()=>{S.to[k]=BYA[k].slice().sort((x,y)=>songScore(y)-songScore(x)).map(s=>s.id);persist();route(true);toast("Sorted by ratings, head-to-heads break ties")}
- $("#play-album").onclick=()=>{const s=(trackMode==="rank"?SONG[trackOrder(k)[0]]:BYA[k][0]);Player.toggle(s.id)}
+ $("#play-album").onclick=()=>Player.queue(trackMode==="rank"?trackOrder(k):BYA[k].map(s=>s.id),A[k].t)
  const sp=$("#sp-album");if(sp)sp.onclick=()=>SP.makePlaylist(trackOrder(k).map(id=>SONG[id]),`${A[k].t}, my order`,`My ranking of ${A[k].t}, made in Drake Hub.`)}
 
 /* head to head */
-function fighter(s,i){return `<button class="fighter" data-side="${i}"><img src="${art(s)}" alt=""><div><b>${esc(s.t)}</b><br><small>${esc(A[s.a].t)} · ${songYear(s)}${s.f?" · feat. "+esc(s.f):""}</small><br><small class="num">${strm(s)}</small><br><small class="num">${S.r[s.id]!=null?"Your rating "+S.r[s.id]+" · ":""}${S.b[s.id]?"#"+RANK[s.id]+" · "+S.b[s.id]+" battles":"New, not ranked yet"}</small></div></button>`}
+function fighter(s,i){return `<button class="fighter" data-side="${i}"><img src="${art(s)}" alt=""><div><b>${esc(s.t)}</b><br><small>${esc(A[s.a].t)} · ${songYear(s)}${s.f?" · feat. "+esc(s.f):""}</small><br><small class="num">${strm(s)}</small>${prods(s).length?`<br><small>prod. ${esc(prodLine(s))}</small>`:""}<br><small class="num">${S.r[s.id]!=null?"Your rating "+S.r[s.id]+" · ":""}${S.b[s.id]?"#"+RANK[s.id]+" · "+S.b[s.id]+" battles":"New, not ranked yet"}</small></div></button>`}
 function vRank(){if(!duel)newDuel()
  const opts=[["all","Finalize the whole list ("+D.songs.length+")"],["top:10","Finalize my top 10"],["top:25","Finalize my top 25"],["top:50","Finalize my top 50"],["top:100","Finalize my top 100"],["rated","Only songs I've rated"]].concat(D.albums.map(a=>["a:"+a.k,a.t]),Object.entries(D.lanes).map(([k,v])=>["l:"+k,"Lane: "+v]))
  const P=progress()

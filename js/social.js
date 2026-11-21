@@ -56,14 +56,14 @@ function vVs(code){let d;try{d=b64d(code)}catch(e){return `<p class="empty" styl
 function afterVs(){const b=$("#vs-back");if(b)b.onclick=shareCompare}
 
 /* challenges: a friend plays the exact same game you just played */
-function challengeLink(){const d={g:Game.id,d:Game.diff,s:Game.seed,src:Game.src&&Game.src!=="mine"?Game.src:"all",sc:Game.id==="hilo"?Game.streak:Game.score,n:myName()||"A friend"}
+function challengeLink(){const d={g:Game.id,d:Game.diff,s:Game.seed,src:Game.src&&Game.src!=="mine"?Game.src:"all",sc:Game.id==="hilo"?Game.streak:GDEF[Game.id].endless?Game.right:Game.score,n:myName()||"A friend"}
  return appURL()+"#ch-"+b64e(d)}
 function shareChallenge(){if(Game.src==="mine"){toast("Challenges need a shared song pool. Pick All of Drake or an album.");return}
- const sc=Game.id==="hilo"?`a streak of ${Game.streak}`:`${Game.score.toLocaleString()} points`
+ const sc=Game.id==="hilo"?`a streak of ${Game.streak}`:Game.id==="survival"?`${Game.right} clips survived`:Game.id==="speed"?`${Game.right} right in 60 seconds`:`${Game.score.toLocaleString()} points`
  shareOut({title:"Drake Hub challenge",text:`I got ${sc} on ${GDEF[Game.id].name} (${GDEF[Game.id].diffs[Game.diff].label}). Same questions, your turn:`,url:challengeLink()})}
 function vChallenge(code){let d;try{d=b64d(code)}catch(e){d=null}
  if(!d||!GDEF[d.g]||!GDEF[d.g].diffs[d.d])return `<p class="empty" style="margin-top:30px">That challenge link is broken. Ask your friend to send it again.</p>`
- const g=GDEF[d.g],what=d.g==="hilo"?`a streak of ${d.sc}`:`${Number(d.sc).toLocaleString()} points`
+ const g=GDEF[d.g],what=d.g==="hilo"?`a streak of ${d.sc}`:d.g==="survival"?`${d.sc} clips`:d.g==="speed"?`${d.sc} in 60 seconds`:`${Number(d.sc).toLocaleString()} points`
  return `<p class="eyebrow">Challenge</p><h1 class="title foil">${esc(d.n)} got ${what}</h1>
  <div class="card glow"><p class="hint">${g.name} · ${g.diffs[d.d].label}. You get the exact same ${d.g==="hilo"?"songs":"questions"} in the same order. Beat it.</p>${d.g==="snippet"?`<p class="hint" style="margin-top:6px">Turn your sound on.</p>`:""}<button class="btn gold" id="ch-go" style="margin-top:12px">Accept the challenge</button></div>`}
 function afterChallenge(code){const b=$("#ch-go");if(!b)return;const d=b64d(code)

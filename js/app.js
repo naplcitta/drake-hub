@@ -9,8 +9,11 @@ function vHome(){const L=level(),P=progress(),dd=G.daily[today()],hr=new Date().
  const rng=seeded("sotd-"+today()),pool=D.songs.filter(s=>s.pv),sotd=pool[Math.floor(rng()*pool.length)]
  const top=myTop(5),m=String(new Date().getMonth()+1).padStart(2,"0"),anniv=D.albums.filter(a=>a.date.slice(5,7)===m&&a.type!=="Singles")
  const fresh=!S.nb&&!Object.keys(S.r).length
- return `<section class="hero"><div><p class="eyebrow">${greet}</p><h1 class="title foil" style="margin-bottom:4px">Drake Hub</h1><p class="hint">${D.songs.length} songs · ${D.albums.length} projects · 2009 to 2026</p></div>
- <a href="#me" class="ring" style="--p:${L.pct.toFixed(1)}" aria-label="Level ${L.l}"><div><div><b class="foil">${L.l}</b><small>level</small></div></div></a></section>
+ const wall=["tc","nwts","views","scorpion","iyrtitl","clb","ml","iceman"].map(k=>A[k].art)
+ return `<section class="stagehero"><div class="wall" aria-hidden="true">${wall.map(u=>`<img src="${u}" alt="">`).join("")}</div><div class="veil"></div>
+ <div class="hero"><div><p class="eyebrow">${greet}${myName()?", "+esc(myName()):""}</p><h1 class="title foil" style="margin-bottom:6px">Drake Hub</h1><p class="hint">${D.songs.length} songs · ${D.albums.length} projects · ${D.songs.filter(s=>prods(s).length).length} with full production credits</p></div>
+ <a href="#me" class="ring" style="--p:${L.pct.toFixed(1)}" aria-label="Level ${L.l}"><div><div><b class="foil">${L.l}</b><small>level</small></div></div></a></div>
+ <p class="lvname">${esc(L.name)}${L.need?` · ${(L.need-L.into).toLocaleString()} XP to ${esc(LEVELS[L.l])}`:""}</p></section>
  ${installCard()}
  ${fresh?`<div class="card glow" style="margin-bottom:12px"><p class="eyebrow">Welcome</p><b style="font-family:var(--display);font-weight:900;font-size:28px;text-transform:uppercase;display:block;line-height:1.02;margin:4px 0 6px">Rank every Drake song. Prove you know the catalogue.</b><p class="hint">Pick between two songs and your all-time list of ${D.songs.length} builds itself. Then play the games, grade the albums and send friends your top 25. No account needed. Everything stays on your phone.</p>
   <div class="row" style="margin-top:12px"><input type="text" id="nm-home" placeholder="Your name (for share cards)" value="${esc(myName())}" maxlength="24" style="flex:1;min-width:160px"><a class="btn gold" href="#rank" id="go-rank">Start ranking</a><a class="btn" href="#daily">Today's challenge</a></div>
@@ -27,7 +30,12 @@ function vHome(){const L=level(),P=progress(),dd=G.daily[today()],hr=new Date().
   <div class="card"><p class="eyebrow">Song of the day</p><div class="sotd" style="margin-top:10px"><img src="${art(sotd)}" alt=""><div><b>${esc(sotd.t)}</b><small class="hint">${esc(A[sotd.a].t)} · ${songYear(sotd)}${sotd.st?" · "+fmtS(sotd.st)+" streams":""}</small><div class="row" style="margin-top:10px">${pvBtn(sotd)}<a class="btn small ghost" href="${songLink(sotd)}" target="_blank" rel="noopener">Spotify</a><a class="btn small ghost" href="#album-${sotd.a}">Album</a></div></div></div></div>
   <div class="card"><p class="eyebrow">${top.length?"Your top 5":"Start ranking"}</p>${top.length?`<ol class="mini-list" style="margin-top:10px">${top.map((s,i)=>`<li><span class="p">${i+1}</span><img src="${art(s)}" alt=""><span>${esc(s.t)}</span><i>${fmtS(s.st)}</i></li>`).join("")}</ol><div class="row" style="margin-top:12px"><button class="btn small gold" id="sh-card">Share my top 10</button><button class="btn small" id="sh-cmp">Compare with a friend</button></div>`:`<p class="hint" style="margin-top:6px">Pick between two songs, over and over, and your all-time list builds itself.</p><a class="btn gold" href="#rank" style="margin-top:12px">Start Head to Head</a>`}</div>
  </div>
+ ${(()=>{const r2=seeded("insight-"+today()),smp=D.songs.filter(s=>s.sm),ss=smp[Math.floor(r2()*smp.length)],per=CIRCLE[Math.floor(r2()*CIRCLE.length)]
+  return `<div class="sec-h"><div><p class="eyebrow">Inside the music</p><h2>Liner Notes</h2></div><a class="btn small ghost" href="#circle">The Circle</a></div><div class="hgrid">
+  <div class="card notecard" data-song="${ss.id}"><p class="eyebrow">Sample of the day</p><b class="nt">${esc(ss.t)}</b><p class="hint">${esc(cap(ss.sm[0].replace(/^"[^"]+"\s*/,"")).slice(0,220))}${ss.sm[0].length>220?"…":""}</p><small class="hint">${esc(A[ss.a].t)} · prod. ${esc(prodLine(ss)||"uncredited")}</small></div>
+  <a class="card notecard" href="#person-${per.id}" style="text-decoration:none"><p class="eyebrow">From the circle</p><b class="nt">${esc(per.name)}</b><p class="hint">${esc(per.bio.slice(0,200))}${per.bio.length>200?"…":""}</p><small class="hint">${esc(per.tag)}</small></a></div>`})()}
  ${anniv.length?`<div class="sec-h"><div><h2>This Month</h2><p>Anniversaries in ${new Date().toLocaleString("en-CA",{month:"long"})}.</p></div></div><div class="picks">${anniv.map(a=>`<a class="pick" href="#album-${a.k}" style="text-decoration:none"><img src="${a.art}" alt=""><div><small>${a.date}</small><b>${esc(a.t)}</b><p>${new Date().getFullYear()-a.y} years old this month.</p></div></a>`).join("")}</div>`:""}`}
+const cap=t=>t.charAt(0).toUpperCase()+t.slice(1)
 function afterHome(){afterInstall()
  const b=$("#imp-go");if(b)b.onclick=()=>doImport($("#imp-home").value)
  const n=$("#nm-home");if(n)n.onchange=()=>localSet("name",n.value.trim())
@@ -53,6 +61,7 @@ function vMe(){const L=level()
   <div class="card" style="margin-top:12px"><p class="eyebrow">Your name</p><div class="row" style="margin-top:8px"><input type="text" id="nm-me" placeholder="Shown on share cards and challenges" value="${esc(myName())}" maxlength="24" style="flex:1;min-width:180px"><button class="btn small" id="nm-save">Save</button></div>
    <div class="row" style="margin-top:12px"><button class="btn small gold" id="me-card">Share my top 10</button><button class="btn small" id="me-cmp">Compare with a friend</button><button class="btn small ghost" id="me-app">Share the app</button></div>
    <p class="hint" style="margin-top:10px">No account, no server. Your rankings, scores and Spotify sign-in stay on this phone. Links you share carry only what's in them, like your top 25 or a game score.</p></div>
+  <div class="card" style="margin-top:12px"><p class="eyebrow">Settings</p><div class="toggles"><label><input type="checkbox" id="set-sfx"${setting("sfx","1")?" checked":""}> Sound effects in games</label><label><input type="checkbox" id="set-haptics"${setting("haptics","1")?" checked":""}> Vibration on Android</label></div></div>
   <div class="sec-h"><div><h2>Badges</h2><p>${BADGES.filter(b=>b[3]()).length} of ${BADGES.length} earned.</p></div></div>
   <div class="badges">${BADGES.map(([k,n,d,f])=>{const got=f();return `<div class="bdg${got?" got":""}"><i>${got?"✓":"?"}</i><b>${n}</b><small>${d}</small></div>`}).join("")}</div>
   <div class="sec-h"><div><h2>Game Records</h2></div></div>
@@ -62,6 +71,8 @@ function vMe(){const L=level()
 function afterMe(){$$("[data-me]").forEach(b=>b.onclick=()=>{meTab=b.dataset.me;localSet("meTab",meTab);route(true)})
  if(meTab==="spotify")afterSpotify()
  if(meTab==="profile"){$("#nm-save").onclick=()=>{localSet("name",$("#nm-me").value.trim());toast("Saved")}
+  $("#set-sfx").onchange=e=>{localSet("set.sfx",e.target.checked?"1":"0");if(e.target.checked)SFX.right()}
+  $("#set-haptics").onchange=e=>localSet("set.haptics",e.target.checked?"1":"0")
   $("#me-card").onclick=topCard;$("#me-cmp").onclick=shareCompare
   $("#me-app").onclick=()=>shareOut({title:"Drake Hub",text:"Rank every Drake song head to head and play Drake games:",url:appURL()})}
  if(meTab==="data"){
@@ -80,6 +91,8 @@ function route(keep){if(!D)return
  Game.live=false;Game.stopAudio()
  $$(".tabbar a").forEach(a=>a.toggleAttribute("aria-current",a.dataset.tab===TAB_OF(h)))
  if(h.startsWith("album-")){v.innerHTML=vAlbum(h.slice(6));afterAlbum(h.slice(6))}
+ else if(h.startsWith("person-")){v.innerHTML=vPerson(h.slice(7));afterPerson()}
+ else if(h.startsWith("producer-")){v.innerHTML=vProducer(h.slice(9));afterPerson()}
  else if(h.startsWith("vs-")){v.innerHTML=vVs(h.slice(3));afterVs()}
  else if(h.startsWith("ch-")){v.innerHTML=vChallenge(h.slice(3));afterChallenge(h.slice(3))}
  else if(h.startsWith("game-")){const id=h.slice(5);if(GDEF[id]){v.innerHTML=vGameStart(id);afterGameStart(id)}else{v.innerHTML=vPlay()}}
@@ -92,15 +105,20 @@ function route(keep){if(!D)return
   case "songs":v.innerHTML=vSongs();afterSongs();break
   case "lanes":v.innerHTML=vLanes();break
   case "charts":v.innerHTML=vCharts();break
+  case "circle":v.innerHTML=vCircle();break
   case "stats":meTab="stats";location.replace("#me");return
   case "me":v.innerHTML=vMe();afterMe();break
   default:v.innerHTML=vHome();afterHome()}
  Player.render()
- if(keep===true||lastView===h)scrollTo(0,y);else scrollTo(0,0)
+ if(!$("#sheet").hidden)closeSong()
+ if(keep===true||lastView===h)scrollTo(0,y);else{scrollTo(0,0);v.classList.remove("enter");void v.offsetWidth;v.classList.add("enter")}
  lastView=h}
 addEventListener("hashchange",()=>{trackMode="album";route()})
 
 ;(async()=>{try{await loadCatalog()}catch(e){$("#view").innerHTML=`<p class="empty" style="margin-top:30px">The catalogue didn't load. Check your connection and reopen the app.</p>`;return}
  await SP.handleCallback()
  renderChrome();route()
- if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{})})()
+ const sp=$("#splash");if(sp)setTimeout(()=>{sp.classList.add("out");setTimeout(()=>sp.remove(),600)},sessionStorage.getItem("dh.splashed")?0:1100);try{sessionStorage.setItem("dh.splashed","1")}catch(e){}
+ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").then(reg=>{
+  reg.addEventListener("updatefound",()=>{const nw=reg.installing;if(!nw)return;nw.addEventListener("statechange",()=>{if(nw.state==="installed"&&navigator.serviceWorker.controller)showUpdate()})})}).catch(()=>{})})()
+function showUpdate(){const b=document.createElement("button");b.className="updbar";b.textContent="A new version of Drake Hub is ready. Tap to update.";b.onclick=()=>location.reload();document.body.appendChild(b)}

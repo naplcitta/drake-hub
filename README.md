@@ -11,8 +11,9 @@ A black and gold fan app for ranking every Drake song, grading every album and p
 ## What's inside
 
 - **Rank**: Head to Head battles that finalize your full ranking of 368 songs, an album ranking built from your song positions, and a drag-to-edit full list.
-- **Play**: Name That Tune (real 30-second previews cut to 7, 4, 2 or 1 seconds), Cover Zoom, Trivia, Higher or Lower on Spotify streams, Odd One Out, Timeline and a Daily Challenge with streaks.
-- **Library**: every album and song with ratings, letter grades, previews, lanes, chart history and stream counts.
+- **Play**: 11 games plus a Daily Challenge. Name That Tune (real previews cut to 7, 4, 2 or 1 seconds), Tune Survival (three lives), Cover Zoom, Trivia, Speed Round (60 seconds), Behind the Boards (name the producer), Sample Hunter, Higher or Lower on Spotify streams, Odd One Out, Fill the Title and Timeline.
+- **Library**: every album and song with ratings, letter grades, previews, lanes, chart history, stream counts, producer credits and samples. Tap any song for its full detail sheet.
+- **The Circle**: the people behind OVO and the sound, from 40 and Oliver El-Khatib to OVO Niko and Chubbs, plus a page for every credited producer with their songs, streams and your average rating.
 - **Me**: levels named after his albums, badges, stats, Spotify connection and backups.
 
 ## Sharing it with friends
@@ -45,7 +46,7 @@ Spotify's rules for personal developer apps: the owner needs Premium, and each C
 
 ## Data
 
-Tracklists, cover art and audio previews come from Apple's iTunes catalogue and are streamed from Apple, not stored here. Spotify stream counts are from kworb.net. Chart history is from Billboard reporting. This is an unofficial fan project, not affiliated with Drake or OVO.
+Tracklists, cover art and audio previews come from Apple's iTunes catalogue and are streamed from Apple, not stored here. Spotify stream counts are from kworb.net. Producer and sample credits are from Wikipedia track listings. Chart history is from Billboard reporting. This is an unofficial fan project, not affiliated with Drake or OVO.
 
 ## Running it locally
 

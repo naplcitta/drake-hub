@@ -33,7 +33,7 @@ function find(t,a){const c=BYT[norm(t)]||[];return (a&&c.find(s=>s.a===a))||c[0]
 /* saved state. Same shape and key as the original hub so backups move straight across. */
 const KEY="drakehub.v1",GKEY="drakehub.games"
 const blank=()=>({r:{},g:{},ao:[],to:{},e:{},b:{},nb:0,u:0})
-const gblank=()=>({xp:0,best:{},plays:{},daily:{},streak:0,lastDaily:"",badges:{},u:0})
+const gblank=()=>({xp:0,best:{},plays:{},daily:{},streak:0,lastDaily:"",badges:{},read:{},u:0})
 let S=blank(),G=gblank()
 try{const j=JSON.parse(localStorage.getItem(KEY)||"null");if(j&&j.r)S=Object.assign(blank(),j)}catch(e){}
 try{const j=JSON.parse(localStorage.getItem(GKEY)||"null");if(j)G=Object.assign(gblank(),j)}catch(e){}
@@ -134,7 +134,7 @@ const lvNeed=l=>Math.round(250*Math.pow(l,1.45))
 function xpTotal(){return (G.xp||0)+S.nb*2+Object.keys(S.r).length}
 function level(){let x=xpTotal(),l=0;while(l<LEVELS.length-1&&x>=lvNeed(l+1)){x-=lvNeed(l+1);l++}
  const need=l<LEVELS.length-1?lvNeed(l+1):null;return{l:l+1,name:LEVELS[l],into:x,need,pct:need?x/need*100:100,total:xpTotal()}}
-function addXP(n,why){const before=level().l;G.xp=(G.xp||0)+Math.round(n);gsave();const after=level();if(after.l>before)setTimeout(()=>toast("Level up: "+after.name),400);renderChrome()}
+function addXP(n,why){const before=level().l;G.xp=(G.xp||0)+Math.round(n);gsave();const after=level();if(after.l>before)setTimeout(()=>{toast("Level up: "+after.name);confetti(160);SFX.win()},400);renderChrome()}
 const BADGES=[
  ["first","First Pick","Fight your first head-to-head",()=>S.nb>=1],
  ["b500","Grinder","500 head-to-heads",()=>S.nb>=500],
@@ -149,18 +149,42 @@ const BADGES=[
  ["daily7","Every Day","7-day daily streak",()=>(G.streak||0)>=7],
  ["cover","Crate Digger","Perfect Cover Zoom on Hard",()=>!!G.badges.cover],
  ["trivia","Encyclopedia","10 out of 10 Trivia on Hard",()=>!!G.badges.trivia],
+ ["boards","Liner Notes","8 or more in Behind the Boards on Hard",()=>!!G.badges.boards],
+ ["survive","Built Different","Survive 20 clips in Tune Survival",()=>(G.best.survival&&Math.max(0,...Object.values(G.best.survival))>=20)],
+ ["speed","Speed Demon","25 points in a Speed Round",()=>(G.best.speed&&Math.max(0,...Object.values(G.best.speed))>=25)],
+ ["circle","Inner Circle","Read every profile in The Circle",()=>Object.keys(G.read||{}).length>=CIRCLE.length],
  ["spotify","Plugged In","Connect Spotify",()=>!!localGet("sp.tok","")]]
 
-/* 30-second preview player (Apple Music previews, streamed, never stored) */
-const Player={a:null,id:null,tick:null,
- el(){if(!this.a){this.a=new Audio();this.a.preload="none";this.a.addEventListener("ended",()=>this.stop());this.a.addEventListener("timeupdate",()=>{const b=$("#mini .bar i");if(b&&this.a.duration)b.style.width=(this.a.currentTime/this.a.duration*100)+"%"})}return this.a},
- toggle(id){if(this.id===id){this.stop();return}const s=SONG[id];if(!s||!s.pv)return;Game.stopAudio&&Game.stopAudio()
-  const a=this.el();a.src=s.pv;a.currentTime=0;a.play().catch(()=>toast("Tap again to play"));this.id=id;this.render()},
- stop(){if(this.a)this.a.pause();this.id=null;this.render()},
+/* 30-second preview player with a queue (Apple Music previews, streamed, never stored) */
+ICON.next='<svg viewBox="0 0 24 24"><path d="M5 5v14l10-7zM17 5h2v14h-2z"/></svg>'
+ICON.prev='<svg viewBox="0 0 24 24"><path d="M19 5v14L9 12zM5 5h2v14H5z"/></svg>'
+const Player={a:null,id:null,q:[],qi:-1,label:"",
+ el(){if(!this.a){this.a=new Audio();this.a.preload="none";this.a.addEventListener("ended",()=>{if(this.qi>=0&&this.qi<this.q.length-1)this.step(1);else this.stop()});this.a.addEventListener("timeupdate",()=>{const b=$("#mini .bar i");if(b&&this.a.duration)b.style.width=(this.a.currentTime/this.a.duration*100)+"%"})}return this.a},
+ start(id){const s=SONG[id];if(!s||!s.pv)return;Game.stopAudio&&Game.stopAudio();const a=this.el();a.src=s.pv;a.currentTime=0;a.play().catch(()=>toast("Tap play again"));this.id=id;this.render()},
+ toggle(id){if(this.id===id){this.stop();return}this.q=[];this.qi=-1;this.start(id)},
+ queue(ids,label){ids=ids.filter(id=>SONG[id]&&SONG[id].pv);if(!ids.length)return;this.q=ids;this.qi=0;this.label=label||"";this.start(ids[0])},
+ step(d){if(this.qi<0)return;this.qi=Math.max(0,Math.min(this.q.length-1,this.qi+d));this.start(this.q[this.qi])},
+ stop(){if(this.a)this.a.pause();this.id=null;this.q=[];this.qi=-1;this.render()},
  render(){const m=$("#mini");$$(".pv").forEach(b=>{const on=b.dataset.pv===this.id;b.classList.toggle("on",on);b.innerHTML=on?ICON.pause:ICON.play;b.setAttribute("aria-label",(on?"Stop preview of ":"Play preview of ")+(SONG[b.dataset.pv]||{}).t)})
-  if(!this.id){m.hidden=true;return}const s=SONG[this.id];m.hidden=false
-  m.innerHTML=`<img src="${art(s)}" alt=""><div><b>${esc(s.t)}</b><small>${esc(A[s.a].t)} · 30-second preview</small><div class="bar"><i></i></div></div><a class="icbtn" href="${songLink(s)}" target="_blank" rel="noopener" aria-label="Open on Spotify"><svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.4l-9.3 9.3-1.4-1.4L17.6 5H14zM5 5h6v2H7v10h10v-4h2v6H5z"/></svg></a><button class="icbtn" id="mini-stop" aria-label="Stop preview">${ICON.stop}</button>`
-  $("#mini-stop").onclick=()=>this.stop()}}
+  if(!this.id){m.hidden=true;document.body.classList.remove("has-mini");return}const s=SONG[this.id];m.hidden=false;document.body.classList.add("has-mini")
+  const qd=this.qi>=0
+  m.innerHTML=`<img src="${art(s)}" alt="" data-song="${s.id}"><div data-song="${s.id}"><b>${esc(s.t)}</b><small>${qd?`${esc(this.label)} · ${this.qi+1} of ${this.q.length}`:esc(A[s.a].t)+" · preview"}</small><div class="bar"><i></i></div></div>${qd?`<button class="icbtn" id="mini-prev" aria-label="Previous">${ICON.prev}</button><button class="icbtn" id="mini-next" aria-label="Next">${ICON.next}</button>`:`<a class="icbtn" href="${songLink(s)}" target="_blank" rel="noopener" aria-label="Open on Spotify"><svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.4l-9.3 9.3-1.4-1.4L17.6 5H14zM5 5h6v2H7v10h10v-4h2v6H5z"/></svg></a>`}<button class="icbtn" id="mini-stop" aria-label="Stop">${ICON.stop}</button>`
+  $("#mini-stop").onclick=()=>this.stop()
+  if(qd){$("#mini-prev").onclick=()=>this.step(-1);$("#mini-next").onclick=()=>this.step(1)}}}
+
+/* settings, sound effects, haptics, confetti */
+const setting=(k,d)=>localGet("set."+k,d)==="1"
+const SFX={ctx:null,
+ tone(freqs,dur=.09,type="sine",gap=.07){if(!setting("sfx","1"))return;try{this.ctx=this.ctx||new (window.AudioContext||window.webkitAudioContext)();const c=this.ctx,t0=c.currentTime
+  freqs.forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t0+i*gap);g.gain.linearRampToValueAtTime(.12,t0+i*gap+.01);g.gain.exponentialRampToValueAtTime(.0001,t0+i*gap+dur);o.connect(g).connect(c.destination);o.start(t0+i*gap);o.stop(t0+i*gap+dur+.02)})}catch(e){}},
+ right(){this.tone([660,990]);buzz(12)},wrong(){this.tone([220,165],.16,"triangle",.09);buzz([30,40,30])},tap(){this.tone([520],.04)},win(){this.tone([523,659,784,1047],.16,"sine",.09);buzz([20,30,20,30,60])}}
+function buzz(p){if(setting("haptics","1")&&navigator.vibrate)try{navigator.vibrate(p)}catch(e){}}
+function confetti(n=120){if(matchMedia("(prefers-reduced-motion: reduce)").matches)return
+ const c=document.createElement("canvas");c.className="confetti";c.width=innerWidth*devicePixelRatio;c.height=innerHeight*devicePixelRatio;document.body.appendChild(c);const x=c.getContext("2d"),dpr=devicePixelRatio
+ const cols=["#fbe9a6","#e2b956","#d6aa45","#b8862e","#f3d483"],P=Array.from({length:n},()=>({x:innerWidth/2+(Math.random()-.5)*80,y:innerHeight*.35,vx:(Math.random()-.5)*11,vy:-Math.random()*12-4,r:Math.random()*6+3,a:Math.random()*6,va:(Math.random()-.5)*.3,c:cols[Math.floor(Math.random()*cols.length)]}))
+ let t=0;const f=()=>{t++;x.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.vy+=.32;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.a+=p.va;x.save();x.translate(p.x*dpr,p.y*dpr);x.rotate(p.a);x.fillStyle=p.c;x.fillRect(-p.r*dpr,-p.r*dpr/2.5,p.r*2*dpr,p.r*dpr/1.25);x.restore()});if(t<150)requestAnimationFrame(f);else c.remove()};requestAnimationFrame(f)}
+const prods=s=>s.pr||[]
+const prodLine=s=>prods(s).length?prods(s).slice(0,3).join(", ")+(prods(s).length>3?" +"+(prods(s).length-3):""):""
 const pvBtn=s=>s.pv?`<button class="pv${Player.id===s.id?" on":""}" data-pv="${s.id}" aria-label="Play preview of ${esc(s.t)}">${Player.id===s.id?ICON.pause:ICON.play}</button>`:""
 
 /* seeded random for daily content */
